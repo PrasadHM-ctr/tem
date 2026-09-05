@@ -1,6 +1,11 @@
 pipeline {
     agent any
 
+    environment {
+        KUBECONFIG = 'C:\\Users\\bhuva\\.kube\\config'
+        DOCKER_IMAGE = 'prasadhm4454/temperature-converter'
+    }
+
     stages {
 
         stage('Checkout') {
@@ -31,13 +36,22 @@ pipeline {
                         passwordVariable: 'DOCKER_PASSWORD'
                     )
                 ]) {
-                    bat 'docker login -u %DOCKER_USERNAME% -p %DOCKER_PASSWORD%'
-                    
-                    bat 'docker tag temperature-converter:%BUILD_NUMBER% %DOCKER_USERNAME%/temperature-converter:%BUILD_NUMBER%'
-                    
-                    bat 'docker push %DOCKER_USERNAME%/temperature-converter:%BUILD_NUMBER%'
+                    bat 'echo %DOCKER_PASSWORD% | docker login --username %DOCKER_USERNAME% --password-stdin'
+
+                    bat 'docker tag temperature-converter:%BUILD_NUMBER% %DOCKER_IMAGE%:%BUILD_NUMBER%'
+
+                    bat 'docker push %DOCKER_IMAGE%:%BUILD_NUMBER%'
                 }
             }
         }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                bat 'kubectl set image deployment/temperature-converter temperature-converter=%DOCKER_IMAGE%:%BUILD_NUMBER%'
+
+                bat 'kubectl rollout status deployment/temperature-converter'
+            }
+        }
+
     }
 }
