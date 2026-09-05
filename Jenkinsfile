@@ -24,7 +24,19 @@ pipeline {
 
         stage('Docker Push') {
             steps {
-                echo 'Docker push will be configured using Jenkins Credentials.'
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-prasad',
+                        usernameVariable: 'DOCKER_USERNAME',
+                        passwordVariable: 'DOCKER_PASSWORD'
+                    )
+                ]) {
+                    bat 'docker login -u %DOCKER_USERNAME% -p %DOCKER_PASSWORD%'
+                    
+                    bat 'docker tag temperature-converter:%BUILD_NUMBER% %DOCKER_USERNAME%/temperature-converter:%BUILD_NUMBER%'
+                    
+                    bat 'docker push %DOCKER_USERNAME%/temperature-converter:%BUILD_NUMBER%'
+                }
             }
         }
     }
